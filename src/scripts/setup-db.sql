@@ -1,0 +1,5 @@
+CREATE DATABASE node;
+
+CREATE USER app_user WITH PASSWORD 'password';
+
+GRANT ALL PRIVILEGES ON DATABASE node TO app_user;
