@@ -14,7 +14,7 @@ export const AppDataSource = new DataSource({
 
   synchronize: false,
   logging: process.env.NODE_ENV !== "production",
-  schema: "app",
+
   entities: [User, Project, Task],
 
   migrations: [
@@ -24,7 +24,7 @@ export const AppDataSource = new DataSource({
   ],
   migrationsRun: true,
   migrationsTableName: "migrations",
-  installExtensions: false, // ← add this
+  installExtensions: false,
 
   subscribers: [],
 

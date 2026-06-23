@@ -9,8 +9,6 @@ const startServer = async () => {
       await AppDataSource.initialize();
       await runSeeds(AppDataSource);
       console.log("✅ Database connected");
-
-      await runSeeds(AppDataSource);
     }
 
     app.listen(PORT, () => {

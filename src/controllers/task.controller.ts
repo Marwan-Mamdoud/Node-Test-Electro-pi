@@ -87,3 +87,66 @@ export const remove = async (
     next(error);
   }
 };
+
+export const getAllTasksForAdmin = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { status, priority, page, limit } = req.query;
+    const result = await taskService.getAllTasksAdmin(
+      {
+        status: status as string,
+        priority: priority as string,
+      },
+      parseInt(page as string) || 1,
+      parseInt(limit as string) || 10,
+    );
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getTaskByIdForAdmin = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
+    const task = await taskService.getTaskByIdAdmin(id as string);
+    res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateTaskForAdmin = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
+    const task = await taskService.updateTaskAdmin(id as string, req.body);
+    res.status(200).json({ success: true, data: task });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteTaskForAdmin = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.params;
+    const result = await taskService.deleteTaskAdmin(id as string);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};

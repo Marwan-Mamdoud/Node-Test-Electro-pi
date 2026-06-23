@@ -86,3 +86,23 @@ export const deleteTask = async (id: string, projectId: string) => {
 
   return { message: "Task deleted successfully" };
 };
+
+export const getAllTasksAdmin = async (
+  filters: { status?: string; priority?: string },
+  page: number = 1,
+  limit: number = 10,
+) => {
+  return TaskRepository.findAllAdmin(filters, page, limit);
+};
+
+export const getTaskByIdAdmin = async (id: string) => {
+  return TaskRepository.findByIdAdmin(id);
+};
+
+export const updateTaskAdmin = async (id: string, updates: Partial<Task>) => {
+  return TaskRepository.updateAdmin(id, updates);
+};
+
+export const deleteTaskAdmin = async (id: string) => {
+  return TaskRepository.deleteAdmin(id);
+};

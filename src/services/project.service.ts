@@ -93,3 +93,72 @@ export const deleteProject = async (id: string, ownerId: string) => {
 
   return { message: "Project deleted successfully" };
 };
+
+export const getAllProjectsAdmin = async (
+  page: number = 1,
+  limit: number = 10,
+) => {
+  const cacheKey = `projects:all:page:${page}:limit:${limit}`;
+
+  const cached = await redis.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  const [projects, total] =
+    await ProjectRepository.findAllWithPaginationForAdmin(page, limit);
+  const result = {
+    projects,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  };
+
+  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+
+  return result;
+};
+
+export const getProjectByIdAdmin = async (id: string) => {
+  const cached = await redis.get(`project:admin:${id}`);
+  if (cached) return JSON.parse(cached);
+
+  const project = await ProjectRepository.findByIdForAdmin(id);
+  if (!project) throw { status: 404, message: "Project not found" };
+
+  await redis.setex(`project:admin:${id}`, CACHE_TTL, JSON.stringify(project));
+
+  return project;
+};
+
+export const updateProjectAdmin = async (
+  id: string,
+  ownerId: string,
+  updates: Partial<Project>,
+) => {
+  // Don't use getProjectById because we don't have ownerId check
+  const project = await ProjectRepository.findByIdForAdmin(id);
+  if (!project) throw { status: 404, message: "Project not found" };
+
+  Object.assign(project, updates);
+  const updated = await ProjectRepository.save(project);
+
+  // Invalidate caches
+  await redis.del(`project:admin:${id}`);
+  await redis.del(`projects:${project.ownerId}`);
+  await redis.del(`projects:all:page:*:limit:*`);
+
+  return updated;
+};
+
+export const deleteProjectAdmin = async (id: string) => {
+  const project = await ProjectRepository.findByIdForAdmin(id);
+  if (!project) throw { status: 404, message: "Project not found" };
+
+  await ProjectRepository.remove(project);
+
+  // Invalidate caches
+  await redis.del(`project:admin:${id}`);
+  await redis.del(`projects:${project.ownerId}`);
+  await redis.del(`projects:all:page:*:limit:*`);
+
+  return { message: "Project deleted successfully" };
+};

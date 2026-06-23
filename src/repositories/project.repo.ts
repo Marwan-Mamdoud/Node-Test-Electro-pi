@@ -23,4 +23,17 @@ export const ProjectRepository = {
     }),
 
   remove: (project: Project) => projectRepo().remove(project),
+
+  findAllWithPaginationForAdmin: (page: number, limit: number) =>
+    projectRepo().findAndCount({
+      order: { createdAt: "DESC" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+
+  findByIdForAdmin: (id: string) =>
+    projectRepo().findOne({
+      where: { id },
+      relations: { tasks: true },
+    }),
 };
