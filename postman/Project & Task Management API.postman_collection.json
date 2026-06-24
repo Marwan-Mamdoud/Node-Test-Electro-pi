@@ -1,0 +1,1138 @@
+{
+  "info": {
+    "_postman_id": "b1a02a8f-d424-4ec6-b76c-f92eef3799f5",
+    "name": "Project & Task Management API",
+    "description": "RESTful API for managing projects and tasks with JWT authentication.\n\n## Quick Start\n1. Run **Auth / Register** to create an account\n2. Run **Auth / Login** — the token is saved automatically to `{{bearerToken}}`\n3. Use any protected endpoint — auth is handled automatically\n\n## Base URL\n`http://localhost:3000`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "taskId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Check System Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Check if the API, database, and Redis are all healthy."
+          },
+          "response": [
+            {
+              "name": "Healthy",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"status\": \"healthy\",\n    \"uptime\": 45.123,\n    \"checks\": {\n      \"database\": true,\n      \"redis\": true,\n      \"timestamp\": \"2024-01-01T12:00:00.000Z\"\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user account.\n\n**Validation rules:**\n- `name`: required, 2–100 characters\n- `email`: required, valid email format\n- `password`: required, minimum 6 characters"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('bearerToken', res.data.token);",
+                  "  console.log('Token saved automatically');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login and get a JWT token. The token is saved automatically to `{{bearerToken}}`.\n\n**Validation rules:**\n- `email`: required, valid email format\n- `password`: required"
+          },
+          "response": []
+        },
+        {
+          "name": "Login as Admin (seeded)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.token) {",
+                  "  pm.collectionVariables.set('bearerToken', res.data.token);",
+                  "  console.log('Admin token saved automatically');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login using the seeded admin account. The admin token is saved automatically to `{{bearerToken}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Get the currently authenticated user's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"email\": \"john.updated@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Update the currently authenticated user's profile.\n\n**Validation rules:**\n- `name`: optional, 2–100 characters\n- `email`: optional, valid email format, max 255 characters"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me", "password"]
+            },
+            "description": "Update the currently authenticated user's password.\n\n**Validation rules:**\n- `currentPassword`: required\n- `newPassword`: required, minimum 6 characters, must contain at least one letter and one number"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Logout and invalidate the current JWT token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Users",
+      "description": "Admin-only endpoints for managing users. Requires a JWT token from an admin account.",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users"]
+            },
+            "description": "Get all users. Admin only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users", "{{userId}}"]
+            },
+            "description": "Get a specific user by ID. Admin only.\n\n**Path parameters:**\n- `id`: UUID of the user"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"role\": \"member\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users", "{{userId}}"]
+            },
+            "description": "Update any user. Admin only.\n\n**Validation rules:**\n- `name`: optional, 2–100 characters\n- `email`: optional, valid email format, max 255 characters\n- `role`: optional, `\"member\"` or `\"admin\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users/{{userId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users", "{{userId}}", "role"]
+            },
+            "description": "Update a user's role. Admin only.\n\n**Validation rules:**\n- `role`: required, must be `\"member\"` or `\"admin\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "users", "{{userId}}"]
+            },
+            "description": "Delete a user. Admin only.\n\n**Path parameters:**\n- `id`: UUID of the user to delete"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "description": "Manage projects. All endpoints require a valid JWT token.",
+      "item": [
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('projectId', res.data.id);",
+                  "  console.log('projectId saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My First Project\",\n  \"description\": \"A sample project description\",\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects"]
+            },
+            "description": "Create a new project. The project ID is saved automatically to `{{projectId}}`.\n\n**Validation rules:**\n- `title`: required, 1–255 characters\n- `description`: optional, max 1000 characters\n- `status`: optional, `\"active\"`, `\"archived\"`, or `\"completed\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Projects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all projects belonging to the authenticated user.\n\n**Query parameters (optional):**\n- `page`: page number (default: 1)\n- `limit`: items per page (default: 10)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}"]
+            },
+            "description": "Get a single project by ID.\n\n**Path parameters:**\n- `id`: UUID of the project"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Project Title\",\n  \"description\": \"Updated description for the project\",\n  \"status\": \"completed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}"]
+            },
+            "description": "Update a project's details.\n\n**Validation rules:**\n- `title`: optional, 1–255 characters\n- `description`: optional, max 1000 characters\n- `status`: optional, `\"active\"`, `\"archived\"`, or `\"completed\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "{{projectId}}"]
+            },
+            "description": "Delete a project and all its tasks.\n\n**Path parameters:**\n- `id`: UUID of the project to delete"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "description": "Manage tasks within a project. Set `{{projectId}}` first by creating a project.",
+      "item": [
+        {
+          "name": "Create Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('taskId', res.data.id);",
+                  "  console.log('taskId saved:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My First Task\",\n  \"description\": \"A sample task description\",\n  \"status\": \"pending\",\n  \"priority\": \"medium\",\n  \"dueDate\": \"2024-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "tasks", "{{projectId}}"]
+            },
+            "description": "Create a task inside a project. The task ID is saved automatically to `{{taskId}}`.\n\n**Validation rules:**\n- `title`: required, 1–255 characters\n- `description`: optional, max 1000 characters\n- `status`: optional, `\"pending\"`, `\"in_progress\"`, or `\"done\"`\n- `priority`: optional, `\"low\"`, `\"medium\"`, or `\"high\"`\n- `dueDate`: optional, ISO 8601 date format"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tasks",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "tasks", "{{projectId}}"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "priority",
+                  "value": "high",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all tasks for a project.\n\n**Query parameters (optional):**\n- `status`: filter by status (`\"pending\"`, `\"in_progress\"`, `\"done\"`)\n- `priority`: filter by priority (`\"low\"`, `\"medium\"`, `\"high\"`)\n- `page`: page number (default: 1)\n- `limit`: items per page (default: 10)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Get a single task by ID.\n\n**Path parameters:**\n- `projectId`: UUID of the project\n- `id`: UUID of the task"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Task Title\",\n  \"status\": \"in_progress\",\n  \"priority\": \"high\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Update a task's details or status.\n\n**Validation rules:**\n- `title`: optional, 1–255 characters\n- `status`: optional, `\"pending\"`, `\"in_progress\"`, or `\"done\"`\n- `priority`: optional, `\"low\"`, `\"medium\"`, or `\"high\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Delete a task.\n\n**Path parameters:**\n- `projectId`: UUID of the project\n- `id`: UUID of the task to delete"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Projects",
+      "description": "Admin-only endpoints for managing all projects regardless of owner.",
+      "item": [
+        {
+          "name": "Get All Projects (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/admin/projects",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "admin", "projects"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all projects from all users. Admin only.\n\n**Query parameters (optional):**\n- `page`: page number (default: 1)\n- `limit`: items per page (default: 10)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project by ID (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/admin/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "admin", "projects", "{{projectId}}"]
+            },
+            "description": "Get any project by ID. Admin only.\n\n**Path parameters:**\n- `id`: UUID of the project"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Any Project (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Admin Updated Project Title\",\n  \"description\": \"Updated by admin\",\n  \"status\": \"archived\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/admin/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "admin", "projects", "{{projectId}}"]
+            },
+            "description": "Update any project. Admin only.\n\n**Validation rules:**\n- `title`: optional, 1–255 characters\n- `description`: optional, max 1000 characters\n- `status`: optional, `\"active\"`, `\"archived\"`, or `\"completed\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Any Project (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/admin/projects/{{projectId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "projects", "admin", "projects", "{{projectId}}"]
+            },
+            "description": "Delete any project. Admin only.\n\n**Path parameters:**\n- `id`: UUID of the project to delete"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin — Tasks",
+      "description": "Admin-only endpoints for managing all tasks regardless of owner.",
+      "item": [
+        {
+          "name": "Get All Tasks (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/admin/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "admin",
+                "tasks"
+              ]
+            },
+            "description": "Get all tasks for any project. Admin only.\n\n**Path parameters:**\n- `projectId`: UUID of the project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Any Task by ID (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/admin/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "admin",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Get any task by ID. Admin only.\n\n**Path parameters:**\n- `projectId`: UUID of the project\n- `id`: UUID of the task"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Any Task (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Admin Updated Task Title\",\n  \"status\": \"done\",\n  \"priority\": \"low\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/admin/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "admin",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Update any task. Admin only.\n\n**Validation rules:**\n- `title`: optional, 1–255 characters\n- `status`: optional, `\"pending\"`, `\"in_progress\"`, or `\"done\"`\n- `priority`: optional, `\"low\"`, `\"medium\"`, or `\"high\"`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Any Task (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{bearerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/tasks/{{projectId}}/admin/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "projects",
+                "tasks",
+                "{{projectId}}",
+                "admin",
+                "tasks",
+                "{{taskId}}"
+              ]
+            },
+            "description": "Delete any task. Admin only.\n\n**Path parameters:**\n- `projectId`: UUID of the project\n- `id`: UUID of the task to delete"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

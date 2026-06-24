@@ -110,9 +110,8 @@ export const getOneForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const project = await projectService.getProjectById(
+    const project = await projectService.getProjectByIdAdmin(
       req.params.id as string,
-      req.user!.userId,
     );
     res.status(200).json({ success: true, data: project });
   } catch (error) {
@@ -143,9 +142,8 @@ export const removeForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const result = await projectService.deleteProject(
+    const result = await projectService.deleteProjectAdmin(
       req.params.id as string,
-      req.user!.userId,
     );
     res.status(200).json({ success: true, data: result });
   } catch (error) {

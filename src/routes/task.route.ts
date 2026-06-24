@@ -101,7 +101,7 @@ router.get("/admin/tasks", taskController.getAllTasksForAdmin);
  *     tags: [Admin]
  */
 router.get(
-  "/tasks/:id",
+  "/admin/tasks/:id",
   validate(taskIdValidation),
   taskController.getTaskByIdForAdmin,
 );
@@ -114,7 +114,7 @@ router.get(
  *     tags: [Admin]
  */
 router.put(
-  "/tasks/:id",
+  "/admin/tasks/:id",
   validate(taskIdValidation),
   taskController.updateTaskForAdmin,
 );
@@ -127,7 +127,7 @@ router.put(
  *     tags: [Admin]
  */
 router.delete(
-  "/tasks/:id",
+  "/admin/tasks/:id",
   validate(taskIdValidation),
   taskController.deleteTaskForAdmin,
 );
