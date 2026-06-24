@@ -132,8 +132,8 @@ if (!isTest) {
  */
 app.use("/api/health", healthRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/projects/tasks/:projectId", taskRoutes);
 app.use("/api/projects", projectRoutes);
-app.use("/api/projects/:projectId/tasks", taskRoutes);
 
 /**
  * Error handler

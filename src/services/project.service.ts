@@ -1,6 +1,7 @@
 import { ProjectRepository } from "../repositories/project.repo";
 import { Project, ProjectStatus } from "../models/Project";
 import redis from "../config/redis";
+import { deleteByPattern } from "../config/redis.helper";
 
 const CACHE_TTL = 300; // 5 minutes
 
@@ -19,7 +20,8 @@ export const createProject = async (
   const saved = await ProjectRepository.save(project);
 
   // Invalidate cache
-  await redis.del(`projects:${ownerId}`);
+  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:admin:*`);
 
   return saved;
 };
@@ -54,7 +56,7 @@ export const getUserProjects = async (
 };
 
 export const getProjectById = async (id: string, ownerId: string) => {
-  const cacheKey = `project:${id}:${ownerId}`;
+  const cacheKey = `projects:${id}`;
 
   const cached = await redis.get(cacheKey);
   if (cached) return JSON.parse(cached);
@@ -77,8 +79,9 @@ export const updateProject = async (
   const updated = await ProjectRepository.save(project);
 
   // Invalidate caches
-  await redis.del(`project:${id}:${ownerId}`);
-  await redis.del(`projects:${ownerId}`);
+  await redis.del(`projects:${id}`);
+  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:admin:*`);
 
   return updated;
 };
@@ -88,17 +91,20 @@ export const deleteProject = async (id: string, ownerId: string) => {
   await ProjectRepository.remove(project);
 
   // Invalidate caches
-  await redis.del(`project:${id}:${ownerId}`);
-  await redis.del(`projects:${ownerId}`);
+  await redis.del(`projects:${id}`);
+  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:admin:*`);
 
   return { message: "Project deleted successfully" };
 };
+
+// Admin
 
 export const getAllProjectsAdmin = async (
   page: number = 1,
   limit: number = 10,
 ) => {
-  const cacheKey = `projects:all:page:${page}:limit:${limit}`;
+  const cacheKey = `projects:admin:page:${page}:limit:${limit}`;
 
   const cached = await redis.get(cacheKey);
   if (cached) return JSON.parse(cached);
@@ -118,13 +124,13 @@ export const getAllProjectsAdmin = async (
 };
 
 export const getProjectByIdAdmin = async (id: string) => {
-  const cached = await redis.get(`project:admin:${id}`);
+  const cached = await redis.get(`projects:${id}`);
   if (cached) return JSON.parse(cached);
 
   const project = await ProjectRepository.findByIdForAdmin(id);
   if (!project) throw { status: 404, message: "Project not found" };
 
-  await redis.setex(`project:admin:${id}`, CACHE_TTL, JSON.stringify(project));
+  await redis.setex(`projects:${id}`, CACHE_TTL, JSON.stringify(project));
 
   return project;
 };
@@ -142,9 +148,9 @@ export const updateProjectAdmin = async (
   const updated = await ProjectRepository.save(project);
 
   // Invalidate caches
-  await redis.del(`project:admin:${id}`);
-  await redis.del(`projects:${project.ownerId}`);
-  await redis.del(`projects:all:page:*:limit:*`);
+  await redis.del(`projects:${id}`);
+  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:admin:*`);
 
   return updated;
 };
@@ -156,9 +162,9 @@ export const deleteProjectAdmin = async (id: string) => {
   await ProjectRepository.remove(project);
 
   // Invalidate caches
-  await redis.del(`project:admin:${id}`);
-  await redis.del(`projects:${project.ownerId}`);
-  await redis.del(`projects:all:page:*:limit:*`);
+  await redis.del(`projects:${id}`);
+  await deleteByPattern(`projects:${project.ownerId}:*`);
+  await deleteByPattern(`projects:admin:*`);
 
   return { message: "Project deleted successfully" };
 };

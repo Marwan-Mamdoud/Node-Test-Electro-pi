@@ -12,13 +12,17 @@ services:
       - DB_USERNAME=user
       - DB_PASSWORD=password
       - DB_NAME=Node
+      - DB_SUPERUSER=user
+      - DB_SUPERUSER_PASSWORD=password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
       - JWT_EXPIRES_IN=24h
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/app
       - /app/node_modules
@@ -34,6 +38,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d Node"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine

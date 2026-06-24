@@ -34,7 +34,7 @@ describe("Task Module", () => {
 
   it("should create task in project", async () => {
     const res = await request(app)
-      .post(`/api/projects/${projectId}/tasks`)
+      .post(`/api/projects/tasks/${projectId}`)
       .set("Authorization", `Bearer ${token}`)
       .send({
         title: "Task 1",

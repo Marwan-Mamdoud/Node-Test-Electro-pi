@@ -97,11 +97,7 @@ export const getAllForAdmin = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const result = await projectService.getUserProjects(
-      req.user!.userId,
-      page,
-      limit,
-    );
+    const result = await projectService.getAllProjectsAdmin(page, limit);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -130,9 +126,9 @@ export const updateForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const project = await projectService.updateProject(
+    const project = await projectService.updateProjectAdmin(
       req.params.id as string,
-      req.user!.userId,
+      req.user?.userId as string,
       req.body,
     );
     res.status(200).json({ success: true, data: project });

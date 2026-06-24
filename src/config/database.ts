@@ -1,3 +1,6 @@
+import "reflect-metadata";
+import dotenv from "dotenv";
+dotenv.config();
 import { DataSource } from "typeorm";
 import { User } from "../models/User";
 import { Project } from "../models/Project";
@@ -11,25 +14,22 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-
   synchronize: false,
   logging: process.env.NODE_ENV !== "production",
-
+  schema: "app",
   entities: [User, Project, Task],
-
   migrations: [
-    process.env.NODE_ENV === "production"
-      ? path.join(__dirname, "../database/migrations/*.js")
-      : path.join(__dirname, "../database/migrations/*.ts"),
+    path.join(
+      __dirname,
+      `../database/migrations/*.${process.env.NODE_ENV === "production" ? "js" : "ts"}`,
+    ),
   ],
   migrationsRun: true,
   migrationsTableName: "migrations",
   installExtensions: false,
-
   subscribers: [],
-
   extra: {
-    max: Number(process.env.DB_POOL_MAX ?? 20),
+    max: Number(process.env.DB_POOL_MAX ?? 10),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   },

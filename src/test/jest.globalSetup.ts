@@ -14,40 +14,33 @@ export default async () => {
   });
 
   await client.connect();
-  await client.query(`SET search_path TO public`);
 
-  // Drop all tables, enums, and indexes but KEEP extensions
-  await client.query(`
-    DO $$ DECLARE
-      r RECORD;
-    BEGIN
-      FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-      END LOOP;
-      
-      FOR r IN (
-        SELECT t.typname 
-        FROM pg_type t 
-        JOIN pg_namespace n ON t.typnamespace = n.oid 
-        WHERE n.nspname = 'public' AND t.typtype = 'e'
-      ) LOOP
-        EXECUTE 'DROP TYPE IF EXISTS ' || quote_ident(r.typname) || ' CASCADE';
-      END LOOP;
-      
-      FOR r IN (SELECT sequencename FROM pg_sequences WHERE schemaname = 'public') LOOP
-        EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.sequencename) || ' CASCADE';
-      END LOOP;
-    END $$;
-  `);
-
+  // Ensure extensions exist (requires superuser)
+  await client.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
   await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+
+  // Wipe and recreate the app schema clean
+  await client.query(`DROP SCHEMA IF EXISTS app CASCADE`);
+  await client.query(
+    `CREATE SCHEMA app AUTHORIZATION "${process.env.DB_USERNAME}"`,
+  );
+  await client.query(
+    `GRANT ALL PRIVILEGES ON SCHEMA app TO "${process.env.DB_USERNAME}"`,
+  );
+  await client.query(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL ON TABLES TO "${process.env.DB_USERNAME}"`,
+  );
+  await client.query(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL ON SEQUENCES TO "${process.env.DB_USERNAME}"`,
+  );
 
   await client.end();
 
+  // Run migrations — never synchronize()
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
 
-  await AppDataSource.synchronize();
+  await AppDataSource.runMigrations();
   await AppDataSource.destroy();
 };

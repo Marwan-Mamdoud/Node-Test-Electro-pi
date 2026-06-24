@@ -22,7 +22,7 @@ router.use(authenticate);
 /* ---------------- CREATE TASK ---------------- */
 /**
  * @swagger
- * /api/projects/{projectId}/tasks:
+ * /api/projects/tasks/{projectId}:
  *   post:
  *     summary: Create task in project
  *     tags: [Tasks]
@@ -34,7 +34,7 @@ router.post("/", validate(createTaskValidation), taskController.create);
 /* ---------------- GET ALL TASKS ---------------- */
 /**
  * @swagger
- * /api/projects/{projectId}/tasks:
+ * /api/projects/tasks/{projectId}:
  *   get:
  *     summary: Get all tasks for a project
  *     tags: [Tasks]
@@ -46,7 +46,7 @@ router.get("/", taskController.getAll);
 /* ---------------- SINGLE TASK ---------------- */
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/{id}:
+ * /api/projects/tasks/{projectId}/{id}:
  *   get:
  *     summary: Get task by ID
  *     tags: [Tasks]
@@ -57,7 +57,7 @@ router.get("/:id", validate(taskIdValidation), taskController.getOne);
 
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/{id}:
+ * /api/projects/tasks/{projectId}/{id}:
  *   put:
  *     summary: Update task
  *     tags: [Tasks]
@@ -66,7 +66,7 @@ router.put("/:id", validate(updateTaskValidation), taskController.update);
 
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/{id}:
+ * /api/projects/tasks/{projectId}/{id}:
  *   delete:
  *     summary: Delete task
  *     tags: [Tasks]
@@ -86,7 +86,7 @@ router.use(authorize("admin"));
 
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/admin/tasks:
+ * /api/projects/tasks/{projectId}/admin/tasks:
  *   get:
  *     summary: Get ALL tasks (admin scoped - current project router context)
  *     tags: [Admin]
@@ -95,7 +95,7 @@ router.get("/admin/tasks", taskController.getAllTasksForAdmin);
 
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/admin/tasks/{id}:
+ * /api/projects/tasks/{projectId}/admin/tasks/{id}:
  *   get:
  *     summary: Get any task (admin scoped)
  *     tags: [Admin]
@@ -108,7 +108,7 @@ router.get(
 
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/admin/tasks/{id}:
+ * /api/projects/tasks/{projectId}/admin/tasks/{id}:
  *   put:
  *     summary: Update any task (admin scoped)
  *     tags: [Admin]
@@ -121,7 +121,7 @@ router.put(
 
 /**
  * @swagger
- * /api/projects/{projectId}/tasks/admin/tasks/{id}:
+ * /api/projects/tasks/{projectId}/admin/tasks/{id}:
  *   delete:
  *     summary: Delete any task (admin scoped)
  *     tags: [Admin]

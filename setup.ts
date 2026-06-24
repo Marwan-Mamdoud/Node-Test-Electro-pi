@@ -68,7 +68,7 @@ const ensureDatabase = async (): Promise<void> => {
 
   await suClient.end();
 
-  // Step 2: connect as superuser to target DB and grant privileges
+  // Step 2: connect as superuser to target DB
   const dbClient = new Client({
     host: DB_HOST,
     port: DB_PORT,
@@ -78,13 +78,34 @@ const ensureDatabase = async (): Promise<void> => {
   });
 
   await dbClient.connect();
+
+  // Create app schema FIRST before anything else
+  await dbClient.query(
+    `CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION "${DB_USERNAME}"`,
+  );
+  await dbClient.query(
+    `GRANT ALL PRIVILEGES ON SCHEMA app TO "${DB_USERNAME}"`,
+  );
+  await dbClient.query(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL ON TABLES TO "${DB_USERNAME}"`,
+  );
+  await dbClient.query(
+    `ALTER DEFAULT PRIVILEGES IN SCHEMA app GRANT ALL ON SEQUENCES TO "${DB_USERNAME}"`,
+  );
+  console.log(`✅ Schema "app" ready, privileges granted to "${DB_USERNAME}"`);
+
+  // Extensions AFTER schema exists (requires superuser)
+  await dbClient.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
+  await dbClient.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+  console.log(`✅ Extensions enabled (pgcrypto, uuid-ossp)`);
+
+  // Public schema privileges
   await dbClient.query(
     `GRANT ALL PRIVILEGES ON SCHEMA public TO "${DB_USERNAME}"`,
   );
   await dbClient.query(`ALTER SCHEMA public OWNER TO "${DB_USERNAME}"`);
-  await dbClient.end();
 
-  console.log(`✅ Privileges granted to "${DB_USERNAME}" on public schema`);
+  await dbClient.end();
 };
 
 const runMigrationsAndSeed = async (): Promise<void> => {
@@ -113,6 +134,7 @@ const main = async (): Promise<void> => {
     await runMigrationsAndSeed();
 
     console.log("\n✅ Setup complete! Starting server...\n");
+
     await import("./src/server");
   } catch (error: any) {
     console.error("\n❌ Setup failed:", error?.message ?? error);

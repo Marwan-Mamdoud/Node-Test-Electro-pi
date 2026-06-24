@@ -16,6 +16,7 @@ export const ProjectRepository = {
 
   findByOwner: (ownerId: string, page: number, limit: number) =>
     projectRepo().findAndCount({
+      relations: { tasks: true },
       where: { ownerId },
       order: { createdAt: "DESC" },
       skip: (page - 1) * limit,
@@ -26,6 +27,7 @@ export const ProjectRepository = {
 
   findAllWithPaginationForAdmin: (page: number, limit: number) =>
     projectRepo().findAndCount({
+      relations: { tasks: true, owner: true },
       order: { createdAt: "DESC" },
       skip: (page - 1) * limit,
       take: limit,
@@ -34,6 +36,6 @@ export const ProjectRepository = {
   findByIdForAdmin: (id: string) =>
     projectRepo().findOne({
       where: { id },
-      relations: { tasks: true },
+      relations: { tasks: true, owner: true },
     }),
 };

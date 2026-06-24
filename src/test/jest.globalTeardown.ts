@@ -1,3 +1,7 @@
+import { AppDataSource } from "../config/database";
+
 export default async () => {
-  // intentionally empty — each test file manages its own connection lifecycle
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.destroy();
+  }
 };

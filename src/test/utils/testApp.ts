@@ -14,12 +14,14 @@ export const teardownTestDB = async () => {
 };
 export const clearDB = async () => {
   const entities = AppDataSource.entityMetadatas;
+  const options = AppDataSource.options as { schema?: string };
 
   for (const entity of entities) {
+    const schema = entity.schema ?? options.schema ?? "public";
     const tableName = entity.tableName;
 
     await AppDataSource.query(
-      `TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE "${schema}"."${tableName}" RESTART IDENTITY CASCADE`,
     );
   }
 };
