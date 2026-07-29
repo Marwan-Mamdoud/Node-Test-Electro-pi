@@ -46,8 +46,13 @@ export const getProjectTasks = async (
   options: TaskListOptions,
 ) => {
   const cacheKey = `tasks:${projectId}:${JSON.stringify(filters)}:${JSON.stringify(options)}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   const [tasks, total] = await TaskRepository.findByProject(
     projectId,
@@ -65,19 +70,34 @@ export const getProjectTasks = async (
     },
   };
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return result;
 };
 
 export const getTaskById = async (id: string, projectId: string) => {
   const cacheKey = `task:${projectId}:${id}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   const task = await TaskRepository.findById(id, projectId);
   if (!task) throw { status: 404, message: "Task not found" };
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(task));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(task));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return task;
 };
 
@@ -164,8 +184,13 @@ export const getAllTasksAdmin = async (
   options: TaskListOptions,
 ) => {
   const cacheKey = `tasks:admin:${JSON.stringify(filters)}:${JSON.stringify(options)}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   const [tasks, total] = await TaskRepository.findAllAdmin(filters, options);
   const result = {
@@ -178,19 +203,34 @@ export const getAllTasksAdmin = async (
     },
   };
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return result;
 };
 
 export const getTaskByIdAdmin = async (id: string) => {
   const cacheKey = `task:${id}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   const task = await TaskRepository.findByIdAdmin(id);
   if (!task) throw { status: 404, message: "Task not found" };
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(task));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(task));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return task;
 };
 

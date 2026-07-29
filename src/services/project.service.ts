@@ -48,8 +48,13 @@ export const getUserProjects = async (
   };
 
   const cacheKey = `projects:${userId}:${JSON.stringify(opts)}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   let projects: Project[];
   let total: number;
@@ -67,14 +72,24 @@ export const getUserProjects = async (
     meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return result;
 };
 
 export const getProjectById = async (id: string, userId: string, role: string) => {
   const cacheKey = `projects:${id}:${userId}`;
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   let project: Project | null;
 
@@ -92,7 +107,12 @@ export const getProjectById = async (id: string, userId: string, role: string) =
     }
   }
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(project));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(project));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return project;
 };
 
@@ -154,8 +174,12 @@ export const getAllProjectsAdmin = async (
   const opts: ProjectListOptions = { page, limit, sortBy, sortOrder, search };
   const cacheKey = `projects:admin:${JSON.stringify(opts)}`;
 
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached);
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   const [projects, total] =
     await ProjectRepository.findAllWithPaginationForAdmin(opts);
@@ -164,18 +188,32 @@ export const getAllProjectsAdmin = async (
     meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 
-  await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  try {
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return result;
 };
 
 export const getProjectByIdAdmin = async (id: string) => {
-  const cached = await redis.get(`projects:${id}:admin`);
-  if (cached) return JSON.parse(cached);
+  try {
+    const cached = await redis.get(`projects:${id}:admin`);
+    if (cached) return JSON.parse(cached);
+  } catch {
+    // Redis unavailable — continue to DB
+  }
 
   const project = await ProjectRepository.findByIdForAdmin(id);
   if (!project) throw { status: 404, message: "Project not found" };
 
-  await redis.setex(`projects:${id}:admin`, CACHE_TTL, JSON.stringify(project));
+  try {
+    await redis.setex(`projects:${id}:admin`, CACHE_TTL, JSON.stringify(project));
+  } catch {
+    // Redis unavailable — skip caching
+  }
+
   return project;
 };
 

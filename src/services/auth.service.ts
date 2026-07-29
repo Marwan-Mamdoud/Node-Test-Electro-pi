@@ -46,16 +46,25 @@ export const loginUser = async (email: string, password: string) => {
 };
 
 export const logoutUser = async (token: string): Promise<void> => {
-  const decoded = JSON.parse(
-    Buffer.from(token.split(".")[1], "base64").toString(),
-  );
-  const expiry = decoded.exp - Math.floor(Date.now() / 1000);
-  await redis.setex(`blacklist:${token}`, expiry > 0 ? expiry : 1, "revoked");
+  try {
+    const decoded = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString(),
+    );
+    const expiry = decoded.exp - Math.floor(Date.now() / 1000);
+    await redis.setex(`blacklist:${token}`, expiry > 0 ? expiry : 1, "revoked");
+  } catch {
+    // Redis unavailable — token expires naturally via JWT exp
+  }
 };
 
 export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
-  const result = await redis.get(`blacklist:${token}`);
-  return result !== null;
+  try {
+    const result = await redis.get(`blacklist:${token}`);
+    return result !== null;
+  } catch {
+    // Redis unavailable — fail open, allow token (expires via JWT exp)
+    return false;
+  }
 };
 
 export const getAllUsersService = async (
