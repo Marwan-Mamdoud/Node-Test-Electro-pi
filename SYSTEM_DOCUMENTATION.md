@@ -621,25 +621,34 @@ npm run dev
 ```
 
 ### Production (Railway + Neon)
+- **Live:** https://node-test-electro-pi-production.up.railway.app
+- **Swagger:** https://node-test-electro-pi-production.up.railway.app/api-docs/
 - Railway auto-detects the `Dockerfile` and builds from it (no `railway.json` needed)
 - `DB_SSL=true` — Neon requires SSL connections
 - Redis runs in-container via `start.sh` (redis-server daemonized)
 - `ensureSchema()` auto-creates the `app` schema on startup (no superuser needed)
 - `PORT` is set automatically by Railway — do not override it
 - Set environment variables via Railway dashboard (Variables tab)
-- Health check path: `/api/health`
+- Health check: `GET /api/health` — reports `healthy` if database is reachable (Redis is optional)
 
 ### Deploying to Railway
-1. Connect your GitHub repo to Railway
+1. Connect your GitHub repo ([Node-Test-Electro-pi](https://github.com/Marwan-Mamdoud/Node-Test-Electro-pi)) to Railway
 2. Railway auto-builds from `Dockerfile` in the repo root
 3. Set environment variables in the Railway dashboard (see §6)
 4. Deploy — Railway runs `start.sh` → redis-server starts → `node dist/server.js`
-5. Verify: `GET /api/health` returns `{ "status": "ok" }`
-6. API docs: `GET /api-docs`
+5. Verify: `GET /api/health` returns `{ "status": "healthy" }`
+6. API docs: https://node-test-electro-pi-production.up.railway.app/api-docs/
 
 ---
 
 ## 7. Frontend Implementation Notes
+
+### Base URLs
+
+| Environment | Backend Base URL | Frontend URL |
+| --- | --- | --- |
+| Local | `http://localhost:3000` | `http://localhost:3001` |
+| Production | `https://node-test-electro-pi-production.up.railway.app` | `https://electro-test-sable.vercel.app` |
 
 ### Auth Flow
 The API returns the JWT in the response body (on `/register` and `/login`). The backend does **not** set any cookies. The frontend is responsible for storing the token and attaching it to requests.

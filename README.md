@@ -2,6 +2,16 @@
 
 A RESTful API for managing projects and tasks with JWT authentication, role-based access control, project membership, and audit logging.
 
+## Live
+
+| Service | URL |
+| --- | --- |
+| Backend API | https://node-test-electro-pi-production.up.railway.app |
+| Swagger Docs | https://node-test-electro-pi-production.up.railway.app/api-docs/ |
+| Frontend | https://electro-test-sable.vercel.app/dashboard |
+| Server Repo | https://github.com/Marwan-Mamdoud/Node-Test-Electro-pi |
+| Frontend Repo | https://github.com/Marwan-Mamdoud/electro-test |
+
 ## Tech Stack
 
 | Category       | Technology        |
@@ -42,59 +52,64 @@ A RESTful API for managing projects and tasks with JWT authentication, role-base
 
 ## Environment Variables
 
-| Variable              | Description                                               | Example          |
-| --------------------- | --------------------------------------------------------- | ---------------- |
-| PORT                  | Server port                                               | 3000             |
-| NODE_ENV              | Environment                                               | development      |
-| DB_HOST               | PostgreSQL host                                           | localhost        |
-| DB_PORT               | PostgreSQL port                                           | 5432             |
-| DB_USERNAME           | Database user                                             | app_user         |
-| DB_PASSWORD           | Database password                                         | password         |
-| DB_NAME               | Database name                                             | node_app         |
-| DB_SUPERUSER          | Local PostgreSQL superuser (for `npm run setup` only)     | postgres         |
-| DB_SUPERUSER_PASSWORD | Superuser password (leave empty if using peer/trust auth) | -                |
-| REDIS_HOST            | Redis host                                                | localhost        |
-| REDIS_PORT            | Redis port                                                | 6379             |
-| JWT_SECRET            | JWT secret key                                            | your-secret-here |
-| JWT_EXPIRES_IN        | Token expiration                                          | 24h              |
+| Variable | Description | Local Default |
+| --- | --- | --- |
+| PORT | Server port (set automatically by Railway) | 3000 |
+| NODE_ENV | `development` or `production` | development |
+| DB_HOST | PostgreSQL host | localhost |
+| DB_PORT | PostgreSQL port | 5432 |
+| DB_USERNAME | Database user | your_db_username |
+| DB_PASSWORD | Database password (empty for local peer auth) | your_db_password |
+| DB_NAME | Database name | node_app |
+| DB_POOL_MAX | Max connections in pool | 10 |
+| DB_SSL | Set `true` for Neon/remote PostgreSQL | false |
+| DB_SUPERUSER | Local PostgreSQL superuser (for `npm run setup` only) | postgres |
+| DB_SUPERUSER_PASSWORD | Superuser password (leave empty for peer/trust auth) | - |
+| REDIS_HOST | Redis host (localhost in dev, 127.0.0.1 in container) | localhost |
+| REDIS_PORT | Redis port | 6379 |
+| JWT_SECRET | Secret key for signing JWTs | your_jwt_secret_here |
+| JWT_EXPIRES_IN | Token expiry duration | 24h |
+| FRONTEND_URL | Comma-separated CORS allowed origins | http://localhost:3001 |
+
+> **Production (Railway):** `PORT` is set automatically — do not override it. `DB_SSL=true` is required for Neon.
 
 ## Setup
 
-### Quick Start (with Docker)
+### Local Development
 
 ```bash
+# 1. Clone and install
+git clone https://github.com/Marwan-Mamdoud/Node-Test-Electro-pi.git
+cd Node-Test-Electro-pi
 npm install
-cp .env.example .env   # edit with your values
-npm run docker:up
-```
 
-### Manual Setup
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your local DB credentials
 
-```bash
-npm install
-cp .env.example .env   # edit with your values
-npm run setup          # creates DB, runs migrations, seeds, starts server
-```
+# 3. Start Redis (if not running)
+redis-server --daemonize yes
 
-### Without Docker
-
-```bash
-# 1. Start PostgreSQL and Redis locally
-# 2. Configure .env
-# 3. Setup database + seed
-npm run setup
-
-# Or step by step:
+# 4. Run migrations + start dev server
 npm run migration:run
-npm run seed
 npm run dev
+# Seeds run automatically on startup
+```
+
+### Test
+
+```bash
+npm test
+# Expected: 4 suites, 51 tests passing
 ```
 
 ## Default Seed Users
 
-| Role   | Email           | Password  |
-| ------ | --------------- | --------- |
-| Admin  | admin@test.com  | admin123  |
+Seeds run automatically on server start (`runSeeds()` in `server.ts`).
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | admin@test.com | admin123 |
 | Member | member@test.com | member123 |
 
 ## API Documentation
@@ -281,29 +296,38 @@ Tokens are obtained from `/api/auth/login`. Logged-out tokens are blacklisted in
 
 ## Deployment (Railway)
 
-This application is designed for deployment on [Railway](https://railway.app):
+### Production Architecture
+
+| Component | Details |
+| --- | --- |
+| Platform | [Railway](https://railway.app) |
+| Database | [Neon](https://neon.tech) (managed PostgreSQL, `DB_SSL=true`) |
+| Redis | Self-hosted inside the container (ephemeral, no external service) |
+| Backend | Express + TypeORM, built from multi-stage `Dockerfile` |
+| Frontend | [Vercel](https://vercel.app) — https://electro-test-sable.vercel.app |
+
+### How It Works
+
+Railway detects the `Dockerfile` in the repo root and builds from it:
+
+1. **Build stage:** `npm ci` + `npm run build` (TypeScript → dist/)
+2. **Production stage:** installs `redis-server` on `node:20-slim`
+3. **`start.sh`:** starts redis-server (localhost, daemonized) → waits for ping → `exec node dist/server.js`
+4. **`ensureSchema()`:** auto-creates the `app` schema on startup (no superuser needed on Neon)
+
+### Deploy Steps
 
 1. Push code to GitHub
-2. Create a new Railway project
-3. Add a PostgreSQL service (Railway managed Postgres)
-4. Add a Redis service (Railway managed Redis)
-5. Set environment variables in Railway dashboard
-6. Deploy — Railway auto-detects Node.js and runs `npm run build && npm start`
+2. Create a new Railway project → connect the GitHub repo
+3. Railway auto-builds from `Dockerfile` (no `railway.json` needed)
+4. Set environment variables in Railway dashboard (see table above)
+5. Deploy — Railway runs `start.sh` → redis-server → `node dist/server.js`
+6. Verify: `GET /api/health` returns `{ "status": "healthy" }`
+7. API docs: `GET /api-docs`
 
-Required Railway env vars:
-```
-PORT=3000
-DB_HOST=<railway postgres host>
-DB_PORT=5432
-DB_USERNAME=<railway postgres user>
-DB_PASSWORD=<railway postgres password>
-DB_NAME=<railway postgres database>
-REDIS_HOST=<railway redis host>
-REDIS_PORT=6379
-JWT_SECRET=<your-secret-key>
-JWT_EXPIRES_IN=24h
-NODE_ENV=production
-```
+### Health Check
+
+`GET /api/health` — reports database and Redis connectivity. The app is **healthy** as long as the database is reachable (Redis is optional infrastructure for caching). Swagger UI is at `/api-docs`.
 
 ## Architecture
 

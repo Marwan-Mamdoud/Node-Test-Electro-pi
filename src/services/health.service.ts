@@ -25,7 +25,9 @@ export const checkHealth = async () => {
     console.error("Redis health check failed:", error);
   }
 
-  const isHealthy = checks.database && checks.redis;
+  // Redis is optional infrastructure (caching layer).
+  // The app is healthy as long as the database is reachable.
+  const isHealthy = checks.database;
 
   return {
     status: isHealthy ? "healthy" : "unhealthy",
