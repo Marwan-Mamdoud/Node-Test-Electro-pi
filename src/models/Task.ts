@@ -9,11 +9,12 @@ import {
   Index,
 } from "typeorm";
 import { Project } from "./Project";
+import { User } from "./User";
 
 export enum TaskStatus {
-  PENDING = "pending",
-  IN_PROGRESS = "in_progress",
-  DONE = "done",
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  DONE = "DONE",
 }
 
 export enum TaskPriority {
@@ -42,7 +43,7 @@ export class Task {
   @Column({
     type: "enum",
     enum: TaskStatus,
-    default: TaskStatus.PENDING,
+    default: TaskStatus.TODO,
   })
   status: TaskStatus;
 
@@ -72,6 +73,22 @@ export class Task {
     name: "projectId",
   })
   project: Project;
+
+  @Index()
+  @Column()
+  creatorId: string;
+
+  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "creatorId" })
+  creator: User;
+
+  @Index()
+  @Column({ nullable: true })
+  assigneeId?: string;
+
+  @ManyToOne(() => User, { onDelete: "SET NULL", nullable: true })
+  @JoinColumn({ name: "assigneeId" })
+  assignee?: User;
 
   @CreateDateColumn({
     type: "timestamptz",

@@ -1,9 +1,14 @@
-import { ProjectRepository } from "../repositories/project.repo";
+import {
+  ProjectRepository,
+  ProjectListOptions,
+} from "../repositories/project.repo";
 import { Project, ProjectStatus } from "../models/Project";
+import { UserRole } from "../models/User";
+import { ProjectMemberRepository } from "../repositories/projectMember.repo";
 import redis from "../config/redis";
 import { deleteByPattern } from "../config/redis.helper";
 
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 300;
 
 export const createProject = async (
   title: string,
@@ -19,7 +24,6 @@ export const createProject = async (
   });
   const saved = await ProjectRepository.save(project);
 
-  // Invalidate cache
   await deleteByPattern(`projects:${ownerId}:*`);
   await deleteByPattern(`projects:admin:*`);
 
@@ -27,72 +31,112 @@ export const createProject = async (
 };
 
 export const getUserProjects = async (
-  ownerId: string,
+  userId: string,
+  role: string,
   page: number = 1,
   limit: number = 10,
+  sortBy?: string,
+  sortOrder?: "ASC" | "DESC",
+  search?: string,
 ) => {
-  const cacheKey = `projects:${ownerId}:page:${page}:limit:${limit}`;
+  const opts: ProjectListOptions = {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    search,
+  };
 
-  // Check cache
+  const cacheKey = `projects:${userId}:${JSON.stringify(opts)}`;
   const cached = await redis.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
-  const [projects, total] = await ProjectRepository.findByOwner(
-    ownerId,
-    page,
-    limit,
-  );
+  let projects: Project[];
+  let total: number;
+
+  if (role === UserRole.ADMIN) {
+    [projects, total] =
+      await ProjectRepository.findAllWithPaginationForAdmin(opts);
+  } else {
+    [projects, total] =
+      await ProjectRepository.findAccessibleProjects(userId, opts);
+  }
+
   const result = {
-    projects,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
+    data: projects,
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 
-  // Set cache
   await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
-
   return result;
 };
 
-export const getProjectById = async (id: string, ownerId: string) => {
-  const cacheKey = `projects:${id}`;
-
+export const getProjectById = async (id: string, userId: string, role: string) => {
+  const cacheKey = `projects:${id}:${userId}`;
   const cached = await redis.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
-  const project = await ProjectRepository.findById(id, ownerId);
-  if (!project) throw { status: 404, message: "Project not found" };
+  let project: Project | null;
+
+  if (role === UserRole.ADMIN) {
+    project = await ProjectRepository.findByIdForAdmin(id);
+    if (!project) throw { status: 404, message: "Project not found" };
+  } else {
+    project = await ProjectRepository.findByIdSimple(id);
+    if (!project) throw { status: 404, message: "Project not found" };
+
+    const isOwner = project.ownerId === userId;
+    if (!isOwner) {
+      const isMember = await ProjectMemberRepository.isMember(id, userId);
+      if (!isMember) throw { status: 403, message: "You do not have access to this project" };
+    }
+  }
 
   await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(project));
-
   return project;
 };
 
 export const updateProject = async (
   id: string,
-  ownerId: string,
+  userId: string,
+  role: string,
   updates: Partial<Project>,
 ) => {
-  const project = await getProjectById(id, ownerId);
+  let project: Project | null;
+
+  if (role === UserRole.ADMIN) {
+    project = await ProjectRepository.findByIdForAdmin(id);
+  } else {
+    project = await ProjectRepository.findById(id, userId);
+  }
+
+  if (!project) throw { status: 404, message: "Project not found" };
+
   Object.assign(project, updates);
   const updated = await ProjectRepository.save(project);
 
-  // Invalidate caches
-  await redis.del(`projects:${id}`);
-  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:${id}:*`);
+  await deleteByPattern(`projects:${userId}:*`);
   await deleteByPattern(`projects:admin:*`);
 
   return updated;
 };
 
-export const deleteProject = async (id: string, ownerId: string) => {
-  const project = await getProjectById(id, ownerId);
+export const deleteProject = async (id: string, userId: string, role: string) => {
+  let project: Project | null;
+
+  if (role === UserRole.ADMIN) {
+    project = await ProjectRepository.findByIdForAdmin(id);
+  } else {
+    project = await ProjectRepository.findById(id, userId);
+  }
+
+  if (!project) throw { status: 404, message: "Project not found" };
+
   await ProjectRepository.remove(project);
 
-  // Invalidate caches
-  await redis.del(`projects:${id}`);
-  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:${id}:*`);
+  await deleteByPattern(`projects:${userId}:*`);
   await deleteByPattern(`projects:admin:*`);
 
   return { message: "Project deleted successfully" };
@@ -103,53 +147,49 @@ export const deleteProject = async (id: string, ownerId: string) => {
 export const getAllProjectsAdmin = async (
   page: number = 1,
   limit: number = 10,
+  sortBy?: string,
+  sortOrder?: "ASC" | "DESC",
+  search?: string,
 ) => {
-  const cacheKey = `projects:admin:page:${page}:limit:${limit}`;
+  const opts: ProjectListOptions = { page, limit, sortBy, sortOrder, search };
+  const cacheKey = `projects:admin:${JSON.stringify(opts)}`;
 
   const cached = await redis.get(cacheKey);
   if (cached) return JSON.parse(cached);
 
   const [projects, total] =
-    await ProjectRepository.findAllWithPaginationForAdmin(page, limit);
+    await ProjectRepository.findAllWithPaginationForAdmin(opts);
   const result = {
-    projects,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
+    data: projects,
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 
   await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
-
   return result;
 };
 
 export const getProjectByIdAdmin = async (id: string) => {
-  const cached = await redis.get(`projects:${id}`);
+  const cached = await redis.get(`projects:${id}:admin`);
   if (cached) return JSON.parse(cached);
 
   const project = await ProjectRepository.findByIdForAdmin(id);
   if (!project) throw { status: 404, message: "Project not found" };
 
-  await redis.setex(`projects:${id}`, CACHE_TTL, JSON.stringify(project));
-
+  await redis.setex(`projects:${id}:admin`, CACHE_TTL, JSON.stringify(project));
   return project;
 };
 
 export const updateProjectAdmin = async (
   id: string,
-  ownerId: string,
   updates: Partial<Project>,
 ) => {
-  // Don't use getProjectById because we don't have ownerId check
   const project = await ProjectRepository.findByIdForAdmin(id);
   if (!project) throw { status: 404, message: "Project not found" };
 
   Object.assign(project, updates);
   const updated = await ProjectRepository.save(project);
 
-  // Invalidate caches
-  await redis.del(`projects:${id}`);
-  await deleteByPattern(`projects:${ownerId}:*`);
+  await deleteByPattern(`projects:${id}:*`);
   await deleteByPattern(`projects:admin:*`);
 
   return updated;
@@ -161,9 +201,7 @@ export const deleteProjectAdmin = async (id: string) => {
 
   await ProjectRepository.remove(project);
 
-  // Invalidate caches
-  await redis.del(`projects:${id}`);
-  await deleteByPattern(`projects:${project.ownerId}:*`);
+  await deleteByPattern(`projects:${id}:*`);
   await deleteByPattern(`projects:admin:*`);
 
   return { message: "Project deleted successfully" };

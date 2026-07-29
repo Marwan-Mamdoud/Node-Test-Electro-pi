@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AuthRequest } from "../middleware/auth";
 import * as taskService from "../services/task.service";
+import { body } from "express-validator";
 
 export const create = async (
   req: AuthRequest,
@@ -8,8 +9,14 @@ export const create = async (
   next: NextFunction,
 ) => {
   try {
-    const { projectId } = req.params;
-    const task = await taskService.createTask({ ...req.body, projectId });
+    const projectId = req.params.projectId as string;
+    // Strip creatorId from body — always derive from session
+    const { creatorId: _ignored, ...body } = req.body;
+
+    const task = await taskService.createTask(
+      { ...body, projectId },
+      req.user!.userId,
+    );
     res.status(201).json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -22,15 +29,28 @@ export const getAll = async (
   next: NextFunction,
 ) => {
   try {
-    const { projectId } = req.params;
-    const { status, priority, page, limit } = req.query;
+    const projectId = req.params.projectId as string;
+    const { status, priority, assignee, search, sortBy, sortOrder } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
     const result = await taskService.getProjectTasks(
-      projectId as string,
-      { status: status as string, priority: priority as string },
-      parseInt(page as string) || 1,
-      parseInt(limit as string) || 10,
+      projectId,
+      {
+        status: status as string,
+        priority: priority as string,
+        assignee: assignee as string,
+        search: search as string,
+      },
+      {
+        page,
+        limit,
+        sortBy: sortBy as string,
+        sortOrder:
+          (sortOrder as string)?.toUpperCase() === "ASC" ? "ASC" : "DESC",
+      },
     );
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -42,11 +62,9 @@ export const getOne = async (
   next: NextFunction,
 ) => {
   try {
-    const { projectId, id } = req.params;
-    const task = await taskService.getTaskById(
-      id as string,
-      projectId as string,
-    );
+    const projectId = req.params.projectId as string;
+    const id = req.params.id as string;
+    const task = await taskService.getTaskById(id, projectId);
     res.status(200).json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -59,11 +77,16 @@ export const update = async (
   next: NextFunction,
 ) => {
   try {
-    const { projectId, id } = req.params;
+    const projectId = req.params.projectId as string;
+    const id = req.params.id as string;
+    console.log(`[Body]`, body);
+
     const task = await taskService.updateTask(
-      id as string,
-      projectId as string,
+      id,
+      projectId,
       req.body,
+      req.user!.userId,
+      req.user!.role,
     );
     res.status(200).json({ success: true, data: task });
   } catch (error) {
@@ -77,12 +100,15 @@ export const remove = async (
   next: NextFunction,
 ) => {
   try {
-    const { projectId, id } = req.params;
+    const projectId = req.params.projectId as string;
+    const id = req.params.id as string;
     const result = await taskService.deleteTask(
-      id as string,
-      projectId as string,
+      id,
+      projectId,
+      req.user!.userId,
+      req.user!.role,
     );
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, message: result.message });
   } catch (error) {
     next(error);
   }
@@ -94,16 +120,26 @@ export const getAllTasksForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const { status, priority, page, limit } = req.query;
+    const { status, priority, assignee, search, sortBy, sortOrder } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
     const result = await taskService.getAllTasksAdmin(
       {
         status: status as string,
         priority: priority as string,
+        assignee: assignee as string,
+        search: search as string,
       },
-      parseInt(page as string) || 1,
-      parseInt(limit as string) || 10,
+      {
+        page,
+        limit,
+        sortBy: sortBy as string,
+        sortOrder:
+          (sortOrder as string)?.toUpperCase() === "ASC" ? "ASC" : "DESC",
+      },
     );
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -115,8 +151,8 @@ export const getTaskByIdForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.params;
-    const task = await taskService.getTaskByIdAdmin(id as string);
+    const id = req.params.id as string;
+    const task = await taskService.getTaskByIdAdmin(id);
     res.status(200).json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -129,8 +165,8 @@ export const updateTaskForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.params;
-    const task = await taskService.updateTaskAdmin(id as string, req.body);
+    const id = req.params.id as string;
+    const task = await taskService.updateTaskAdmin(id, req.body);
     res.status(200).json({ success: true, data: task });
   } catch (error) {
     next(error);
@@ -143,9 +179,9 @@ export const deleteTaskForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.params;
-    const result = await taskService.deleteTaskAdmin(id as string);
-    res.status(200).json({ success: true, data: result });
+    const id = req.params.id as string;
+    const result = await taskService.deleteTaskAdmin(id);
+    res.status(200).json({ success: true, message: result.message });
   } catch (error) {
     next(error);
   }

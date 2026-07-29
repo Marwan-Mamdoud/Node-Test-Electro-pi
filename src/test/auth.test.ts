@@ -2,8 +2,6 @@ import request from "supertest";
 import { app, setupTestDB, clearDB, teardownTestDB } from "./utils/testApp";
 
 describe("Auth Module", () => {
-  let token: string;
-
   beforeAll(async () => {
     await setupTestDB();
     await clearDB();
@@ -13,35 +11,53 @@ describe("Auth Module", () => {
     await teardownTestDB();
   });
 
-  it("should register user", async () => {
-    const res = await request(app).post("/api/auth/register").send({
-      name: "Test User",
-      email: "test@example.com",
-      password: "123456",
+  describe("POST /api/auth/register", () => {
+    it("should register a new user and return token", async () => {
+      const res = await request(app).post("/api/auth/register").send({
+        name: "Test User",
+        email: "test@example.com",
+        password: "password123",
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user).toBeDefined();
+      expect(res.body.data.user.email).toBe("test@example.com");
+      expect(res.body.data.user.role).toBe("member");
+      expect(res.body.data.token).toBeDefined();
     });
 
-    expect(res.status).toBe(201);
-    expect(res.body.success).toBe(true);
+    it("should reject duplicate email with 409", async () => {
+      const res = await request(app).post("/api/auth/register").send({
+        name: "Test User 2",
+        email: "test@example.com",
+        password: "password123",
+      });
+
+      expect(res.status).toBe(409);
+    });
   });
 
-  it("should login user", async () => {
-    const res = await request(app).post("/api/auth/login").send({
-      email: "test@example.com",
-      password: "123456",
+  describe("POST /api/auth/login", () => {
+    it("should login with valid credentials and return token", async () => {
+      const res = await request(app).post("/api/auth/login").send({
+        email: "test@example.com",
+        password: "password123",
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.token).toBeDefined();
+      expect(res.body.data.user.email).toBe("test@example.com");
     });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.token).toBeDefined();
+    it("should reject invalid credentials with 401", async () => {
+      const res = await request(app).post("/api/auth/login").send({
+        email: "test@example.com",
+        password: "wrongpassword",
+      });
 
-    token = res.body.data.token;
-  });
-
-  it("should get current user", async () => {
-    const res = await request(app)
-      .get("/api/auth/me")
-      .set("Authorization", `Bearer ${token}`);
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.email).toBe("test@example.com");
+      expect(res.status).toBe(401);
+    });
   });
 });

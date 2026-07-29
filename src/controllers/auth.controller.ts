@@ -70,8 +70,21 @@ export const getAllUsers = async (
   next: NextFunction,
 ) => {
   try {
-    const users = await getAllUsersService();
-    res.status(200).json({ success: true, data: users });
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const sortBy = (req.query.sortBy as string) || undefined;
+    const sortOrder =
+      (req.query.sortOrder as string)?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    const search = (req.query.search as string) || undefined;
+
+    const result = await getAllUsersService(
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search,
+    );
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }

@@ -1,0 +1,31 @@
+# ──────────────────────────────────────────────────────────────
+# LEGACY — This file is kept for reference only.
+# Deployment target is now Railway (see SYSTEM_DOCUMENTATION.md).
+# Railway does NOT read this file; it uses its own dashboard config.
+# ──────────────────────────────────────────────────────────────
+app = '<your-app-name>'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '3000'
+  REDIS_HOST = '127.0.0.1'
+  REDIS_PORT = '6379'
+  DB_SSL = 'true'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 50
+    soft_limit = 25
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512

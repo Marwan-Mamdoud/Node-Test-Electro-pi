@@ -7,6 +7,7 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
+  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   globalSetup: "./src/test/jest.globalSetup.ts",
   globalTeardown: "./src/test/jest.globalTeardown.ts",
 };

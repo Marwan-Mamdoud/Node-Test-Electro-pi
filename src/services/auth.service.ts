@@ -29,7 +29,10 @@ export const registerUser = async (
 };
 
 export const loginUser = async (email: string, password: string) => {
+  console.log("email", email);
+  console.log("password", password);
   const user = await UserRepository.findByEmail(email);
+  console.log("user", user);
   if (!user) throw { status: 401, message: "Invalid credentials" };
 
   const isMatch = await bcrypt.compare(password, user.password);
@@ -55,17 +58,37 @@ export const isTokenBlacklisted = async (token: string): Promise<boolean> => {
   return result !== null;
 };
 
-export const getAllUsersService = async () => {
-  return UserRepository.find({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+export const getAllUsersService = async (
+  page: number = 1,
+  limit: number = 10,
+  sortBy?: string,
+  sortOrder?: "ASC" | "DESC",
+  search?: string,
+) => {
+  const [users, total] = await UserRepository.findAllWithPagination({
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    search,
   });
+
+  return {
+    data: users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+    })),
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 export const getUserByIdService = async (id: string) => {

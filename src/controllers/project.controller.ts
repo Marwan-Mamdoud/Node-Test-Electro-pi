@@ -29,12 +29,21 @@ export const getAll = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const sortBy = (req.query.sortBy as string) || undefined;
+    const sortOrder =
+      (req.query.sortOrder as string)?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    const search = (req.query.search as string) || undefined;
+
     const result = await projectService.getUserProjects(
       req.user!.userId,
+      req.user!.role,
       page,
       limit,
+      sortBy,
+      sortOrder,
+      search,
     );
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -46,9 +55,11 @@ export const getOne = async (
   next: NextFunction,
 ) => {
   try {
+    const id = req.params.id as string;
     const project = await projectService.getProjectById(
-      req.params.id as string,
+      id,
       req.user!.userId,
+      req.user!.role,
     );
     res.status(200).json({ success: true, data: project });
   } catch (error) {
@@ -62,9 +73,11 @@ export const update = async (
   next: NextFunction,
 ) => {
   try {
+    const id = req.params.id as string;
     const project = await projectService.updateProject(
-      req.params.id as string,
+      id,
       req.user!.userId,
+      req.user!.role,
       req.body,
     );
     res.status(200).json({ success: true, data: project });
@@ -79,11 +92,13 @@ export const remove = async (
   next: NextFunction,
 ) => {
   try {
+    const id = req.params.id as string;
     const result = await projectService.deleteProject(
-      req.params.id as string,
+      id,
       req.user!.userId,
+      req.user!.role,
     );
-    res.status(200).json({ success: true, data: result });
+    res.status(200).json({ success: true, message: result.message });
   } catch (error) {
     next(error);
   }
@@ -97,8 +112,19 @@ export const getAllForAdmin = async (
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
-    const result = await projectService.getAllProjectsAdmin(page, limit);
-    res.status(200).json({ success: true, data: result });
+    const sortBy = (req.query.sortBy as string) || undefined;
+    const sortOrder =
+      (req.query.sortOrder as string)?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    const search = (req.query.search as string) || undefined;
+
+    const result = await projectService.getAllProjectsAdmin(
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search,
+    );
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
@@ -110,9 +136,8 @@ export const getOneForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const project = await projectService.getProjectByIdAdmin(
-      req.params.id as string,
-    );
+    const id = req.params.id as string;
+    const project = await projectService.getProjectByIdAdmin(id);
     res.status(200).json({ success: true, data: project });
   } catch (error) {
     next(error);
@@ -125,11 +150,8 @@ export const updateForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const project = await projectService.updateProjectAdmin(
-      req.params.id as string,
-      req.user?.userId as string,
-      req.body,
-    );
+    const id = req.params.id as string;
+    const project = await projectService.updateProjectAdmin(id, req.body);
     res.status(200).json({ success: true, data: project });
   } catch (error) {
     next(error);
@@ -142,10 +164,9 @@ export const removeForAdmin = async (
   next: NextFunction,
 ) => {
   try {
-    const result = await projectService.deleteProjectAdmin(
-      req.params.id as string,
-    );
-    res.status(200).json({ success: true, data: result });
+    const id = req.params.id as string;
+    const result = await projectService.deleteProjectAdmin(id);
+    res.status(200).json({ success: true, message: result.message });
   } catch (error) {
     next(error);
   }

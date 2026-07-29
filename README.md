@@ -1,94 +1,44 @@
 # Project & Task Management API
 
-A RESTful API for managing projects and tasks with JWT authentication, built with Node.js, TypeScript, Express, PostgreSQL, and Redis.
-
----
+A RESTful API for managing projects and tasks with JWT authentication, role-based access control, project membership, and audit logging.
 
 ## Tech Stack
 
 | Category       | Technology        |
 | -------------- | ----------------- |
 | Runtime        | Node.js 18+       |
-| Framework      | Express.js        |
+| Framework      | Express.js 5      |
 | Language       | TypeScript        |
 | Database       | PostgreSQL        |
 | ORM            | TypeORM           |
-| Authentication | JWT               |
+| Authentication | JWT + bcryptjs    |
 | Validation     | express-validator |
-| Cache          | Redis             |
+| Cache          | Redis (ioredis)   |
 | API Docs       | Swagger/OpenAPI   |
 | Testing        | Jest + Supertest  |
 
----
-
 ## Features
 
-- Authentication (register/login/logout) with JWT
-- Project management (CRUD)
-- Task management under projects (CRUD)
-- Filtering tasks by status and priority
-- Pagination for list endpoints
-- Role-Based Access Control (admin/member)
-- Redis caching for read optimization
+- Authentication (register/login/logout) with JWT and Redis token blacklist
+- Role-Based Access Control (ADMIN / MEMBER)
+- Project management (CRUD) with membership-based access scoping
+- Project membership management (add/remove members)
+- Task management under projects (CRUD) with creator/assignee tracking
+- Task filtering by status, priority, and assignee
+- Text search on projects and tasks
+- Pagination and sorting on all list endpoints
+- Task audit logging (automatic status change tracking)
+- Redis caching for read-heavy endpoints
 - Health check endpoint
 - Input validation on all endpoints
 - Centralized error handling
-
----
+- Full Swagger/OpenAPI documentation at `/api-docs`
 
 ## Prerequisites
 
 - Node.js 18+
 - PostgreSQL 14+
 - Redis 7+
-
----
-
-## Project Structure
-
-```
-src/
-├── config/           # DB + Redis config
-├── controllers/      # HTTP handlers
-├── middleware/       # Auth, validation, error handling
-├── models/           # TypeORM entities
-├── repositories/     # DB access layer
-├── routes/           # API routes
-├── services/         # Business logic
-├── validators/       # Request validation
-├── utils/            # JWT + helpers
-├── database/
-│   ├── migrations/   # TypeORM migrations
-│   └── seeds/        # Seed data
-└── test/             # Jest test suites
-```
-
----
-
-## Environment Setup
-
-### 1. Clone repository
-
-```bash
-git clone https://github.com/Marwan-Mamdoud/Node-Test-Electro-pi.git
-cd project-task-api
-```
-
-### 2. Install dependencies
-
-```bash
-npm install
-```
-
-### 3. Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and fill in your values. See the Environment Variables section below.
-
----
 
 ## Environment Variables
 
@@ -108,132 +58,37 @@ Edit `.env` and fill in your values. See the Environment Variables section below
 | JWT_SECRET            | JWT secret key                                            | your-secret-here |
 | JWT_EXPIRES_IN        | Token expiration                                          | 24h              |
 
-> `DB_SUPERUSER` is only used by `npm run setup` to create the database and grant privileges.
-> It is never used at runtime. On Mac with Homebrew Postgres it is your OS username.
-> On Linux/Windows it is usually `postgres`.
-> Run `psql postgres -c "\du"` to list available superusers on your machine.
+## Setup
 
----
-
-## Setup Options
-
-### Option A — With Docker (recommended, zero config)
-
-Requires Docker Desktop to be running.
+### Quick Start (with Docker)
 
 ```bash
+npm install
+cp .env.example .env   # edit with your values
 npm run docker:up
 ```
 
-This starts PostgreSQL, Redis, and the app in containers. Migrations and seeds run automatically on startup. The API is available at `http://localhost:3000`.
-
-To stop:
+### Manual Setup
 
 ```bash
-npm run docker:down
+npm install
+cp .env.example .env   # edit with your values
+npm run setup          # creates DB, runs migrations, seeds, starts server
 ```
 
-To view logs:
+### Without Docker
 
 ```bash
-npm run docker:logs
-```
-
----
-
-### Option B — Without Docker (local PostgreSQL + Redis)
-
-#### 1. Install and start PostgreSQL
-
-**macOS (Homebrew):**
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-```
-
-**Ubuntu:**
-
-```bash
-sudo apt install postgresql
-sudo systemctl start postgresql
-```
-
-**Windows:**
-Download and install from https://www.postgresql.org/download/windows/
-
-#### 2. Install and start Redis
-
-**macOS:**
-
-```bash
-brew install redis
-brew services start redis
-```
-
-**Ubuntu:**
-
-```bash
-sudo apt install redis-server
-sudo systemctl start redis
-```
-
-**Windows:**
-Download from https://github.com/microsoft/redis/releases or use WSL.
-
-#### 3. Set DB_SUPERUSER in .env
-
-Find your local PostgreSQL superuser:
-
-```bash
-psql postgres -c "\du"
-```
-
-Set it in `.env`:
-
-```env
-DB_SUPERUSER=your_superuser_name
-DB_SUPERUSER_PASSWORD=
-```
-
-#### 4. Run setup
-
-```bash
+# 1. Start PostgreSQL and Redis locally
+# 2. Configure .env
+# 3. Setup database + seed
 npm run setup
-```
 
-This single command will:
-
-- Create the database and user if they don't exist
-- Grant the necessary privileges
-- Run all migrations
-- Seed default data (admin + member users, sample projects and tasks)
-- Start the server
-
-The API will be available at `http://localhost:3000`.
-
----
-
-### Option C — Manual database setup
-
-If you prefer to manage the database yourself:
-
-```bash
-# Create database and user
-psql postgres -c "CREATE ROLE app_user WITH LOGIN PASSWORD 'password';"
-psql postgres -c "CREATE DATABASE node_app OWNER app_user;"
-
-# Run migrations
+# Or step by step:
 npm run migration:run
-
-# Seed data
 npm run seed
-
-# Start dev server
 npm run dev
 ```
-
----
 
 ## Default Seed Users
 
@@ -241,8 +96,6 @@ npm run dev
 | ------ | --------------- | --------- |
 | Admin  | admin@test.com  | admin123  |
 | Member | member@test.com | member123 |
-
----
 
 ## API Documentation
 
@@ -252,7 +105,7 @@ Swagger UI is available at:
 http://localhost:3000/api-docs
 ```
 
----
+The JSON spec is at `/api-docs.json`.
 
 ## API Endpoints
 
@@ -262,62 +115,107 @@ http://localhost:3000/api-docs
 | ------ | ----------- | ---- |
 | GET    | /api/health | No   |
 
----
-
 ### Auth
 
-| Method | Endpoint           | Auth |
-| ------ | ------------------ | ---- |
-| POST   | /api/auth/register | No   |
-| POST   | /api/auth/login    | No   |
-| POST   | /api/auth/logout   | Yes  |
-| GET    | /api/auth/me       | Yes  |
-
----
+| Method | Endpoint           | Auth | Description          |
+| ------ | ------------------ | ---- | -------------------- |
+| POST   | /api/auth/register | No   | Register new user    |
+| POST   | /api/auth/login    | No   | Login, get JWT token |
+| POST   | /api/auth/logout   | Yes  | Logout, revoke token |
+| GET    | /api/auth/me       | Yes  | Get current profile  |
+| PUT    | /api/auth/me       | Yes  | Update profile       |
+| PUT    | /api/auth/me/password | Yes | Change password   |
 
 ### Projects
 
-| Method | Endpoint          | Auth | Role        |
-| ------ | ----------------- | ---- | ----------- |
-| POST   | /api/projects     | Yes  | Any         |
-| GET    | /api/projects     | Yes  | Any         |
-| GET    | /api/projects/:id | Yes  | Any         |
-| PUT    | /api/projects/:id | Yes  | Owner/Admin |
-| DELETE | /api/projects/:id | Yes  | Owner/Admin |
+| Method | Endpoint                          | Auth | Role        |
+| ------ | --------------------------------- | ---- | ----------- |
+| POST   | /api/projects                     | Yes  | Any         |
+| GET    | /api/projects                     | Yes  | Any (scoped)|
+| GET    | /api/projects/:id                 | Yes  | Any (scoped)|
+| PUT    | /api/projects/:id                 | Yes  | Any (scoped)|
+| DELETE | /api/projects/:id                 | Yes  | Any (scoped)|
+| GET    | /api/projects/:id/members         | Yes  | Any (scoped)|
+| POST   | /api/projects/:id/members         | Yes  | Admin       |
+| DELETE | /api/projects/:id/members/:userId | Yes  | Admin       |
 
----
+### Tasks (nested under projects)
 
-### Tasks
+| Method | Endpoint                                         | Auth | Role        |
+| ------ | ------------------------------------------------ | ---- | ----------- |
+| POST   | /api/projects/:projectId/tasks                  | Yes  | Any (scoped)|
+| GET    | /api/projects/:projectId/tasks                  | Yes  | Any (scoped)|
+| GET    | /api/projects/:projectId/tasks/:id              | Yes  | Any (scoped)|
+| PUT    | /api/projects/:projectId/tasks/:id              | Yes  | Any (scoped)|
+| DELETE | /api/projects/:projectId/tasks/:id              | Yes  | Creator/Admin|
+| GET    | /api/projects/:projectId/tasks/:id/audit-log    | Yes  | Any (scoped)|
 
-| Method | Endpoint                           | Auth | Role  |
-| ------ | ---------------------------------- | ---- | ----- |
-| POST   | /api/projects/:projectId/tasks     | Yes  | Admin |
-| GET    | /api/projects/:projectId/tasks     | Yes  | Any   |
-| GET    | /api/projects/:projectId/tasks/:id | Yes  | Any   |
-| PUT    | /api/projects/:projectId/tasks/:id | Yes  | Admin |
-| DELETE | /api/projects/:projectId/tasks/:id | Yes  | Admin |
+### Admin-only (under /api/auth)
 
----
+| Method | Endpoint                | Auth | Role  |
+| ------ | ----------------------- | ---- | ----- |
+| GET    | /api/auth/users         | Yes  | Admin |
+| GET    | /api/auth/users/:id     | Yes  | Admin |
+| PUT    | /api/auth/users/:id     | Yes  | Admin |
+| DELETE | /api/auth/users/:id     | Yes  | Admin |
+| PATCH  | /api/auth/users/:id/role| Yes  | Admin |
 
 ## Query Parameters
 
 ### GET /api/projects
 
-| Parameter | Type   | Description    |
-| --------- | ------ | -------------- |
-| page      | number | Page number    |
-| limit     | number | Items per page |
+| Parameter | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
+| page      | number | Page number (default: 1)       |
+| limit     | number | Items per page (default: 10)   |
+| sortBy    | string | Sort field (default: createdAt)|
+| sortOrder | string | asc or desc (default: desc)    |
+| search    | string | Search by title/description    |
 
 ### GET /api/projects/:projectId/tasks
 
-| Parameter | Type   | Values                     |
-| --------- | ------ | -------------------------- |
-| status    | string | pending, in_progress, done |
-| priority  | string | low, medium, high          |
-| page      | number | Page number                |
-| limit     | number | Items per page             |
+| Parameter | Type   | Values                         |
+| --------- | ------ | ------------------------------ |
+| status    | string | TODO, IN_PROGRESS, DONE        |
+| priority  | string | low, medium, high              |
+| assignee  | string | User ID                        |
+| search    | string | Search by title/description    |
+| page      | number | Page number                    |
+| limit     | number | Items per page                 |
+| sortBy    | string | title, priority, status, createdAt |
+| sortOrder | string | asc or desc                    |
 
----
+### Pagination Response Shape
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "total": 42,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5
+  }
+}
+```
+
+## Authorization Rules
+
+- **Global Admin** (`User.role === "admin"`): Can access all projects and tasks regardless of membership.
+- **Member** (`User.role === "member"`): Can only access projects they own or are a member of (via ProjectMember).
+- **Task delete**: Only the task creator or a global admin can delete tasks.
+- **Project member management**: Only global admins can add/remove project members.
+
+## Task Audit Logging
+
+Every time a task's status changes, an entry is automatically written to `task_audit_logs` with:
+- `taskId` — the task that changed
+- `changedBy` — who made the change
+- `oldStatus` / `newStatus` — the status transition
+- `changedAt` — timestamp
+
+View history: `GET /api/projects/:projectId/tasks/:taskId/audit-log`
 
 ## Scripts
 
@@ -329,26 +227,22 @@ http://localhost:3000/api-docs
 | npm run start            | Start production server from dist/                   |
 | npm run test             | Run all tests (serial)                               |
 | npm run test:watch       | Run tests in watch mode                              |
+| npm run typecheck        | Type-check without emitting                          |
 | npm run migration:run    | Run pending migrations                               |
 | npm run migration:revert | Revert last migration                                |
 | npm run seed             | Seed database with default data                      |
 | npm run docker:up        | Build and start Docker containers                    |
 | npm run docker:down      | Stop Docker containers                               |
-| npm run docker:logs      | Stream app container logs                            |
-
----
 
 ## Authentication
 
-All protected endpoints require a Bearer token in the Authorization header:
+All protected endpoints require a Bearer token:
 
 ```
 Authorization: Bearer <token>
 ```
 
 Tokens are obtained from `/api/auth/login`. Logged-out tokens are blacklisted in Redis.
-
----
 
 ## Response Format
 
@@ -361,6 +255,21 @@ Tokens are obtained from `/api/auth/login`. Logged-out tokens are blacklisted in
 }
 ```
 
+### Success (paginated)
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "meta": {
+    "total": 42,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 5
+  }
+}
+```
+
 ### Error
 
 ```json
@@ -370,49 +279,58 @@ Tokens are obtained from `/api/auth/login`. Logged-out tokens are blacklisted in
 }
 ```
 
----
+## Deployment (Railway)
 
-## HTTP Status Codes
+This application is designed for deployment on [Railway](https://railway.app):
 
-| Code | Meaning               |
-| ---- | --------------------- |
-| 200  | OK                    |
-| 201  | Created               |
-| 400  | Bad Request           |
-| 401  | Unauthorized          |
-| 403  | Forbidden             |
-| 404  | Not Found             |
-| 409  | Conflict              |
-| 500  | Internal Server Error |
+1. Push code to GitHub
+2. Create a new Railway project
+3. Add a PostgreSQL service (Railway managed Postgres)
+4. Add a Redis service (Railway managed Redis)
+5. Set environment variables in Railway dashboard
+6. Deploy — Railway auto-detects Node.js and runs `npm run build && npm start`
 
----
+Required Railway env vars:
+```
+PORT=3000
+DB_HOST=<railway postgres host>
+DB_PORT=5432
+DB_USERNAME=<railway postgres user>
+DB_PASSWORD=<railway postgres password>
+DB_NAME=<railway postgres database>
+REDIS_HOST=<railway redis host>
+REDIS_PORT=6379
+JWT_SECRET=<your-secret-key>
+JWT_EXPIRES_IN=24h
+NODE_ENV=production
+```
 
 ## Architecture
 
 ```
-Request → Routes → Middleware → Controllers → Services → Repositories → Database
+Request -> Routes -> Middleware -> Controllers -> Services -> Repositories -> Database
 ```
 
 - **Controllers** handle HTTP request/response
 - **Services** contain business logic
 - **Repositories** abstract database queries
-- **Middleware** handles auth, validation, and error handling
-
----
+- **Middleware** handles auth, validation, project access, and error handling
 
 ## Security
 
-- bcrypt password hashing (cost factor 10)
-- JWT authentication with expiry
+- bcryptjs password hashing (cost factor 10)
+- JWT authentication with configurable expiry
 - Redis token blacklist on logout
 - Input validation on all endpoints via express-validator
 - Role-based access control (admin/member)
+- Per-project authorization (admin bypasses, member must be owner or in ProjectMember)
 - Parameterized queries via TypeORM (SQL injection prevention)
-
----
+- creatorId never accepted from client input (always derived from JWT session)
+- assigneeId validated against project membership on write
 
 ## Performance
 
-- Redis caching for read-heavy endpoints
+- Redis caching for read-heavy endpoints (projects, tasks)
 - Pagination on all list endpoints
 - Indexed foreign keys and frequently filtered columns
+- Cache invalidation on writes

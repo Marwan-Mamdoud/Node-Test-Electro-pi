@@ -6,7 +6,13 @@ import {
   updateProjectValidation,
   projectIdValidation,
 } from "../validators/project.validator";
+import {
+  addMemberValidation,
+  removeMemberValidation,
+  projectIdParamValidation,
+} from "../validators/projectMember.validator";
 import * as projectController from "../controllers/project.controller";
+import * as projectMemberController from "../controllers/projectMember.controller";
 
 const router = Router();
 
@@ -36,7 +42,7 @@ router.post("/", validate(createProjectValidation), projectController.create);
  * @swagger
  * /api/projects:
  *   get:
- *     summary: Get user projects
+ *     summary: Get projects accessible to the authenticated user
  *     tags: [Projects]
  *     security:
  *       - bearerAuth: []
@@ -69,16 +75,62 @@ router.put("/:id", validate(updateProjectValidation), projectController.update);
  *     summary: Delete project
  *     tags: [Projects]
  */
-router.delete("/:id", validate(projectIdValidation), projectController.remove);
+router.delete(
+  "/:id",
+  validate(projectIdValidation),
+  projectController.remove,
+);
+
+/* ---------------- PROJECT MEMBERS ---------------- */
+
+/**
+ * @swagger
+ * /api/projects/{id}/members:
+ *   get:
+ *     summary: Get members of a project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  "/:id/members",
+  validate(projectIdParamValidation),
+  projectMemberController.getMembers,
+);
+
+/**
+ * @swagger
+ * /api/projects/{id}/members:
+ *   post:
+ *     summary: Add a member to a project (admin or project owner only)
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post(
+  "/:id/members",
+  validate(addMemberValidation),
+  projectMemberController.addMember,
+);
+
+/**
+ * @swagger
+ * /api/projects/{id}/members/{userId}:
+ *   delete:
+ *     summary: Remove a member from a project (admin or project owner only)
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete(
+  "/:id/members/:userId",
+  validate(removeMemberValidation),
+  projectMemberController.removeMember,
+);
 
 /* ---------------- ADMIN LAYER ---------------- */
 
 router.use(authorize("admin"));
-
-/**
- * ⚠ REAL BASE PATH IS STILL:
- * /api/projects/admin/projects
- */
 
 /**
  * @swagger

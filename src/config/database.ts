@@ -5,6 +5,8 @@ import { DataSource } from "typeorm";
 import { User } from "../models/User";
 import { Project } from "../models/Project";
 import { Task } from "../models/Task";
+import { ProjectMember } from "../models/ProjectMember";
+import { TaskAuditLog } from "../models/TaskAuditLog";
 import * as path from "path";
 
 export const AppDataSource = new DataSource({
@@ -17,7 +19,7 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: process.env.NODE_ENV !== "production",
   schema: "app",
-  entities: [User, Project, Task],
+  entities: [User, Project, Task, ProjectMember, TaskAuditLog],
   migrations: [
     path.join(
       __dirname,
@@ -26,6 +28,7 @@ export const AppDataSource = new DataSource({
   ],
   migrationsRun: true,
   migrationsTableName: "migrations",
+  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
   installExtensions: false,
   subscribers: [],
   extra: {
